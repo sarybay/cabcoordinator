@@ -105,7 +105,7 @@ function TooltipSelect({ value, tooltip, disabled, onChange, children }: {
   )
 }
 
-type EditableField = 'name' | 'phone' | 'flight_number' | 'arrival_date' | 'arrival_time' | 'origin' | 'destination'
+type EditableField = 'name' | 'phone' | 'flight_number' | 'arrival_date' | 'arrival_time' | 'pickup_time' | 'origin' | 'destination'
 
 function EditableCell({ passengerId, field, initialValue, type = 'text', textClass = 'text-gray-500', isDeleted, onSaved }: {
   passengerId: string
