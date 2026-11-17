@@ -1,8 +1,36 @@
 'use server'
 
-import { createAuthClient } from '@/lib/supabaseAuth'
 import { createServerClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
+
+async function sendMagicLinkViaResend(email: string, siteUrl: string): Promise<{ error?: string }> {
+  const supabase = createServerClient()
+  const { data, error } = await supabase.auth.admin.generateLink({
+    type: 'magiclink',
+    email,
+    options: { redirectTo: `${siteUrl}/auth/callback` },
+  })
+  if (error || !data?.properties?.action_link) {
+    return { error: error?.message ?? 'Failed to generate link' }
+  }
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM,
+      to: email,
+      subject: 'Your magic link to Cab Coordinator',
+      html: `<p>Click the link below to sign in:</p>
+             <p><a href="${data.properties.action_link}">Sign in to Cab Coordinator →</a></p>
+             <p style="color:#999;font-size:12px">This link expires in 1 hour.</p>`,
+    }),
+  })
+  if (!res.ok) return { error: `Email send failed: ${await res.text()}` }
+  return {}
+}
 
 async function userExistsByEmail(email: string): Promise<boolean> {
   const supabase = createServerClient()
@@ -17,22 +45,15 @@ export async function sendMagicLinkAction(
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
   const supabase = createServerClient()
 
-  // 1. Already a registered user → send OTP, no new account creation
+  // 1. Already a registered user → send magic link via Resend
   const exists = await userExistsByEmail(email)
   if (exists) {
-    const authClient = await createAuthClient()
-    const { error } = await authClient.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${siteUrl}/auth/callback`,
-        shouldCreateUser: false,
-      },
-    })
-    if (error) return { error: error.message }
+    const result = await sendMagicLinkViaResend(email, siteUrl)
+    if (result.error) return { error: result.error }
     return {}
   }
 
-  // 2. Already approved in signup_requests → let them in
+  // 2. Already approved in signup_requests → create account + send magic link via Resend
   const { data: approved } = await supabase
     .from('signup_requests')
     .select('id')
@@ -41,15 +62,8 @@ export async function sendMagicLinkAction(
     .maybeSingle()
 
   if (approved) {
-    const authClient = await createAuthClient()
-    const { error } = await authClient.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${siteUrl}/auth/callback`,
-        shouldCreateUser: true,
-      },
-    })
-    if (error) return { error: error.message }
+    const result = await sendMagicLinkViaResend(email, siteUrl)
+    if (result.error) return { error: result.error }
     return {}
   }
 
