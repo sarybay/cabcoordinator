@@ -3,16 +3,22 @@
 import { createServerClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 
-async function sendMagicLinkViaResend(email: string, siteUrl: string): Promise<{ error?: string }> {
+async function sendMagicLinkViaResend(
+  forEmail: string,
+  siteUrl: string,
+  sendTo?: string
+): Promise<{ error?: string }> {
   const supabase = createServerClient()
   const { data, error } = await supabase.auth.admin.generateLink({
     type: 'magiclink',
-    email,
+    email: forEmail,
     options: { redirectTo: `${siteUrl}/auth/callback` },
   })
   if (error || !data?.properties?.action_link) {
     return { error: error?.message ?? 'Failed to generate link' }
   }
+  const recipient = sendTo ?? forEmail
+  const isForwarding = recipient !== forEmail
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -21,11 +27,15 @@ async function sendMagicLinkViaResend(email: string, siteUrl: string): Promise<{
     },
     body: JSON.stringify({
       from: process.env.RESEND_FROM,
-      to: email,
-      subject: 'Your magic link to Cab Coordinator',
-      html: `<p>Click the link below to sign in:</p>
-             <p><a href="${data.properties.action_link}">Sign in to Cab Coordinator →</a></p>
-             <p style="color:#999;font-size:12px">This link expires in 1 hour.</p>`,
+      to: recipient,
+      subject: isForwarding ? `Magic link for ${forEmail}` : 'Your magic link to Cab Coordinator',
+      html: isForwarding
+        ? `<p>Magic link for <strong>${forEmail}</strong> — forward this to them:</p>
+           <p><a href="${data.properties.action_link}">${data.properties.action_link}</a></p>
+           <p style="color:#999;font-size:12px">Expires in 1 hour, single use.</p>`
+        : `<p>Click the link below to sign in:</p>
+           <p><a href="${data.properties.action_link}">Sign in to Cab Coordinator →</a></p>
+           <p style="color:#999;font-size:12px">This link expires in 1 hour.</p>`,
     }),
   })
   if (!res.ok) return { error: `Email send failed: ${await res.text()}` }
@@ -53,7 +63,7 @@ export async function sendMagicLinkAction(
     return {}
   }
 
-  // 2. Already approved in signup_requests → create account + send magic link via Resend
+  // 2. Already approved in signup_requests → generate link, send to admin for forwarding
   const { data: approved } = await supabase
     .from('signup_requests')
     .select('id')
@@ -62,7 +72,8 @@ export async function sendMagicLinkAction(
     .maybeSingle()
 
   if (approved) {
-    const result = await sendMagicLinkViaResend(email, siteUrl)
+    const adminEmail = process.env.SUPER_ADMIN_EMAIL!
+    const result = await sendMagicLinkViaResend(email, siteUrl, adminEmail)
     if (result.error) return { error: result.error }
     return {}
   }
