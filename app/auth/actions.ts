@@ -111,6 +111,7 @@ export async function sendMagicLinkAction(
 }
 
 export async function logoutAction() {
+  const { createAuthClient } = await import('@/lib/supabaseAuth')
   const supabase = await createAuthClient()
   await supabase.auth.signOut()
   redirect('/auth/login')
