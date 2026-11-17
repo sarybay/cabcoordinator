@@ -1,5 +1,6 @@
 import { renderToBuffer } from '@react-pdf/renderer'
 import { createServerClient } from '@/lib/supabaseServer'
+import { createAuthClient } from '@/lib/supabaseAuth'
 import { NextRequest, NextResponse } from 'next/server'
 import { CabPdf } from '@/lib/cabPdf'
 import type { CabPdfPassenger } from '@/lib/cabPdf'
@@ -7,6 +8,9 @@ import JSZip from 'jszip'
 import React from 'react'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ projectId: string }> }) {
+  const { data: { user } } = await createAuthClient().auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { projectId } = await params
   const supabase = createServerClient()
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createServerClient } from '@/lib/supabaseServer'
+import { createAuthClient } from '@/lib/supabaseAuth'
 import { bundlePassengersIntoCabs } from '@/lib/bundleCabs'
 
 export const maxDuration = 60
@@ -89,6 +90,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing projectId or filePath' }, { status: 400 })
   }
 
+  const { data: { user } } = await createAuthClient().auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const supabase = createServerClient()
 
   // 1. Download file from Supabase Storage
@@ -168,18 +172,6 @@ export async function POST(req: NextRequest) {
   })
   const safeText = sanitize(deltaText)
   const safeSystem = sanitize(SYSTEM_PROMPT)
-
-  // Validate API key has no stray non-ASCII chars (common copy-paste mistake)
-  const apiKey = process.env.ANTHROPIC_API_KEY ?? ''
-  for (let i = 0; i < apiKey.length; i++) {
-    if (apiKey.charCodeAt(i) > 127) {
-      await supabase.storage.from('chat-exports').remove([filePath])
-      return NextResponse.json(
-        { error: `ANTHROPIC_API_KEY contains a non-ASCII character at index ${i} (value ${apiKey.charCodeAt(i)}). Remove it in your .env.local and in Vercel → Settings → Environment Variables.` },
-        { status: 500 }
-      )
-    }
-  }
 
   let message: Awaited<ReturnType<typeof anthropic.messages.create>>
   try {

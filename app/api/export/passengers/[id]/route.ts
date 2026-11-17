@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs'
 import { createServerClient } from '@/lib/supabaseServer'
+import { createAuthClient } from '@/lib/supabaseAuth'
 import { NextRequest, NextResponse } from 'next/server'
 
 const CAB_FILLS: Record<string, string> = {
@@ -22,6 +23,9 @@ type CabJoin = {
 } | null
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { data: { user } } = await createAuthClient().auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { id } = await params
   const supabase = createServerClient()
 
