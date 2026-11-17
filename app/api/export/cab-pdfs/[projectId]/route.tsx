@@ -8,7 +8,7 @@ import JSZip from 'jszip'
 import React from 'react'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ projectId: string }> }) {
-  const { data: { user } } = await createAuthClient().auth.getUser()
+  const { data: { user } } = await (await createAuthClient()).auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { projectId } = await params

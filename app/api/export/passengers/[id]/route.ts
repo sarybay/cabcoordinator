@@ -23,7 +23,7 @@ type CabJoin = {
 } | null
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { data: { user } } = await createAuthClient().auth.getUser()
+  const { data: { user } } = await (await createAuthClient()).auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params

@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing projectId or filePath' }, { status: 400 })
   }
 
-  const { data: { user } } = await createAuthClient().auth.getUser()
+  const { data: { user } } = await (await createAuthClient()).auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServerClient()

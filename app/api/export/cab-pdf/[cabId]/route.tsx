@@ -7,7 +7,7 @@ import type { CabPdfPassenger } from '@/lib/cabPdf'
 import React from 'react'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ cabId: string }> }) {
-  const { data: { user } } = await createAuthClient().auth.getUser()
+  const { data: { user } } = await (await createAuthClient()).auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { cabId } = await params
