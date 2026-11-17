@@ -1,7 +1,30 @@
 'use server'
 
 import { createServerClient } from '@/lib/supabaseServer'
+import { createClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
+
+// Sends a magic link directly to the user via Supabase's email system (implicit flow, no PKCE).
+// Use for registered users — the link lands in their inbox without admin forwarding.
+async function sendMagicLinkDirect(
+  email: string,
+  siteUrl: string
+): Promise<{ error?: string }> {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { flowType: 'implicit', persistSession: false, autoRefreshToken: false } }
+  )
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: false,
+      emailRedirectTo: `${siteUrl}/auth/confirm`,
+    },
+  })
+  if (error) return { error: error.message }
+  return {}
+}
 
 async function sendMagicLinkViaResend(
   forEmail: string,
@@ -55,16 +78,27 @@ export async function sendMagicLinkAction(
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
   const supabase = createServerClient()
 
-  // 1. Already a registered user → send magic link via Resend
-  // If the email is the admin's own, send directly; otherwise route through admin for forwarding
+  // 1. Already a registered user → send directly to their inbox
   const exists = await userExistsByEmail(email)
   if (exists) {
     const adminEmail = process.env.SUPER_ADMIN_EMAIL!
     const isAdmin = email.toLowerCase() === adminEmail.toLowerCase()
-    const sendTo = isAdmin ? undefined : adminEmail
-    const result = await sendMagicLinkViaResend(email, siteUrl, sendTo)
-    if (result.error) return { error: result.error }
-    return isAdmin ? {} : { sentToAdmin: true }
+
+    if (isAdmin) {
+      // Admin: use Resend (we're the recipient, no forwarding needed)
+      const result = await sendMagicLinkViaResend(email, siteUrl)
+      if (result.error) return { error: result.error }
+      return {}
+    }
+
+    // Drivers and registered owners: send directly via Supabase email
+    const direct = await sendMagicLinkDirect(email, siteUrl)
+    if (!direct.error) return {}
+
+    // Fallback: Supabase rejected the email format — route through admin
+    const fallback = await sendMagicLinkViaResend(email, siteUrl, adminEmail)
+    if (fallback.error) return { error: fallback.error }
+    return { sentToAdmin: true }
   }
 
   // 2. Already approved in signup_requests → generate link, send to admin for forwarding
@@ -76,10 +110,11 @@ export async function sendMagicLinkAction(
     .maybeSingle()
 
   if (approved) {
+    // First-time owner: account doesn't exist yet, admin forwards this first link
     const adminEmail = process.env.SUPER_ADMIN_EMAIL!
     const result = await sendMagicLinkViaResend(email, siteUrl, adminEmail)
     if (result.error) return { error: result.error }
-    return {}
+    return { sentToAdmin: true }
   }
 
   // 3. Already pending → tell them to wait

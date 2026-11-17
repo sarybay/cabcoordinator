@@ -52,7 +52,7 @@ export default function LoginPage() {
           <h1 className="text-xl font-bold text-gray-900 mb-2">Link sent to your admin</h1>
           <p className="text-sm text-gray-500">
             Your sign-in link for <span className="font-medium text-gray-700">{email}</span> has been sent to the admin.
-            They&apos;ll forward it to you shortly — check WhatsApp or email.
+            They&apos;ll forward it to you — after your first sign-in, future links will go straight to your inbox.
           </p>
           <button
             onClick={() => { setState(false); setEmail('') }}
