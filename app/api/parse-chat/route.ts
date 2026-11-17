@@ -153,27 +153,40 @@ export async function POST(req: NextRequest) {
 
   // 7. Send to Claude Haiku 5.5
   // Sanitize: replace non-Latin-1 chars (codepoint > 255) with ASCII equivalents.
-  // The Anthropic SDK internally calls btoa() which rejects codepoints > 255,
-  // and WhatsApp exports commonly contain characters like • (U+2022 = 8226).
-  const safeText = deltaText.replace(/[^\x00-\xFF]/g, (ch) => {
+  // WhatsApp exports contain • (U+2022 = 8226), smart quotes, directional marks, etc.
+  const sanitize = (s: string) => s.replace(/[^\x00-\xFF]/g, (ch) => {
     const map: Record<string, string> = {
-      '•': '*',    // bullet •
-      '‘': "'", '’': "'",   // smart single quotes
-      '“': '"', '”': '"',   // smart double quotes
-      '–': '-',  '—': '--', // en/em dash
-      '…': '...', // ellipsis
-      '‎': '', '‏': '',     // LTR/RTL marks
-      '‪': '', '‫': '', '‬': '', '‭': '', '‮': '', // directional embeddings
+      '•': '*',
+      '‘': "'", '’': "'",
+      '“': '"', '”': '"',
+      '–': '-', '—': '--',
+      '…': '...',
+      '‎': '', '‏': '',
+      '‪': '', '‫': '', '‬': '', '‭': '', '‮': '',
     }
     return map[ch] ?? ' '
   })
+  const safeText = sanitize(deltaText)
+  const safeSystem = sanitize(SYSTEM_PROMPT)
+
+  // Validate API key has no stray non-ASCII chars (common copy-paste mistake)
+  const apiKey = process.env.ANTHROPIC_API_KEY ?? ''
+  for (let i = 0; i < apiKey.length; i++) {
+    if (apiKey.charCodeAt(i) > 127) {
+      await supabase.storage.from('chat-exports').remove([filePath])
+      return NextResponse.json(
+        { error: `ANTHROPIC_API_KEY contains a non-ASCII character at index ${i} (value ${apiKey.charCodeAt(i)}). Remove it in your .env.local and in Vercel → Settings → Environment Variables.` },
+        { status: 500 }
+      )
+    }
+  }
 
   let message: Awaited<ReturnType<typeof anthropic.messages.create>>
   try {
     message = await anthropic.messages.create({
       model: 'claude-haiku-5-5',
       max_tokens: 4096,
-      system: SYSTEM_PROMPT,
+      system: safeSystem,
       messages: [{ role: 'user', content: safeText }],
     })
   } catch (e) {
