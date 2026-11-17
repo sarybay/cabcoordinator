@@ -45,13 +45,25 @@ export async function GET(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
-  await anonClient.auth.signInWithOtp({
+  const { error: otpError } = await anonClient.auth.signInWithOtp({
     email: row.email as string,
     options: {
       emailRedirectTo: `${siteUrl}/auth/callback`,
       shouldCreateUser: true,
     },
   })
+
+  if (otpError) {
+    return new NextResponse(
+      `<!doctype html><html><head><meta charset="utf-8"></head><body style="font-family:sans-serif;padding:2rem;max-width:480px;margin:0 auto">
+        <h2 style="color:#c00">⚠️ Approved but magic link failed</h2>
+        <p>Access was approved for <strong>${row.email}</strong>, but sending the magic link failed.</p>
+        <p style="color:#666;font-size:14px">Error: ${otpError.message}</p>
+        <p style="font-size:14px">Ask them to go to <a href="${siteUrl}/auth/login">${siteUrl}/auth/login</a> and enter their email to receive the link.</p>
+      </body></html>`,
+      { headers: { 'Content-Type': 'text/html' } }
+    )
+  }
 
   return new NextResponse(
     `<!doctype html><html><head><meta charset="utf-8"></head><body style="font-family:sans-serif;padding:2rem;max-width:480px;margin:0 auto">
