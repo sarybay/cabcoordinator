@@ -25,7 +25,12 @@ export default function InviteForm({ driverId }: { driverId: string }) {
       <div className="text-center py-4">
         <div className="text-4xl mb-3">🎉</div>
         <h2 className="text-lg font-bold text-gray-900 mb-1">You&apos;re registered!</h2>
-        <p className="text-sm text-gray-500">The admin will assign you to a cab.</p>
+        <p className="text-sm text-gray-500 mb-3">
+          The admin will assign you to a cab and send you your driver link via WhatsApp or email.
+        </p>
+        <p className="text-xs text-gray-400">
+          Need to sign in later? Go to the login page and enter your email — your admin will receive a link to forward to you.
+        </p>
       </div>
     )
   }

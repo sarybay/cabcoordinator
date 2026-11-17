@@ -51,7 +51,7 @@ async function userExistsByEmail(email: string): Promise<boolean> {
 
 export async function sendMagicLinkAction(
   email: string
-): Promise<{ error?: string; pending?: true }> {
+): Promise<{ error?: string; pending?: true; sentToAdmin?: true }> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
   const supabase = createServerClient()
 
@@ -60,10 +60,11 @@ export async function sendMagicLinkAction(
   const exists = await userExistsByEmail(email)
   if (exists) {
     const adminEmail = process.env.SUPER_ADMIN_EMAIL!
-    const sendTo = email.toLowerCase() === adminEmail.toLowerCase() ? undefined : adminEmail
+    const isAdmin = email.toLowerCase() === adminEmail.toLowerCase()
+    const sendTo = isAdmin ? undefined : adminEmail
     const result = await sendMagicLinkViaResend(email, siteUrl, sendTo)
     if (result.error) return { error: result.error }
-    return {}
+    return isAdmin ? {} : { sentToAdmin: true }
   }
 
   // 2. Already approved in signup_requests → generate link, send to admin for forwarding

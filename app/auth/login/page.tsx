@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { sendMagicLinkAction } from '@/app/auth/actions'
 
-type State = false | 'sent' | 'pending'
+type State = false | 'sent' | 'sentToAdmin' | 'pending'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -18,6 +18,7 @@ export default function LoginPage() {
       const result = await sendMagicLinkAction(email)
       if (result?.error) setError(result.error)
       else if (result?.pending) setState('pending')
+      else if (result?.sentToAdmin) setState('sentToAdmin')
       else setState('sent')
     })
   }
@@ -31,6 +32,27 @@ export default function LoginPage() {
           <p className="text-sm text-gray-500">
             Your access request for <span className="font-medium text-gray-700">{email}</span> has been submitted.
             The admin will review it and you&apos;ll receive a magic link once approved.
+          </p>
+          <button
+            onClick={() => { setState(false); setEmail('') }}
+            className="mt-6 text-sm text-gray-400 hover:text-gray-700 transition-colors"
+          >
+            Use a different email
+          </button>
+        </div>
+      </main>
+    )
+  }
+
+  if (state === 'sentToAdmin') {
+    return (
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 w-full max-w-md text-center">
+          <div className="text-4xl mb-4">📨</div>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Link sent to your admin</h1>
+          <p className="text-sm text-gray-500">
+            Your sign-in link for <span className="font-medium text-gray-700">{email}</span> has been sent to the admin.
+            They&apos;ll forward it to you shortly — check WhatsApp or email.
           </p>
           <button
             onClick={() => { setState(false); setEmail('') }}
