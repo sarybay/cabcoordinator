@@ -3,6 +3,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createServerClient } from '@/lib/supabaseServer'
 import { bundlePassengersIntoCabs } from '@/lib/bundleCabs'
 
+export const maxDuration = 60
+
 const anthropic = new Anthropic()
 
 const SYSTEM_PROMPT = `You are a data-extraction assistant. The user will give you a WhatsApp group chat export.
