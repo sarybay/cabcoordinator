@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
   const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
     type: 'magiclink',
     email: row.email as string,
-    options: { redirectTo: `${siteUrl}/auth/callback` },
+    options: { redirectTo: `${siteUrl}/auth/confirm` },
   })
 
   if (linkError || !linkData?.properties?.action_link) {

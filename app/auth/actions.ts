@@ -12,7 +12,7 @@ async function sendMagicLinkViaResend(
   const { data, error } = await supabase.auth.admin.generateLink({
     type: 'magiclink',
     email: forEmail,
-    options: { redirectTo: `${siteUrl}/auth/callback` },
+    options: { redirectTo: `${siteUrl}/auth/confirm` },
   })
   if (error || !data?.properties?.action_link) {
     return { error: error?.message ?? 'Failed to generate link' }
