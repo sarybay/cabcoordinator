@@ -75,7 +75,15 @@ function extractParticipantNames(messages: ParsedMessage[]): Set<string> {
 }
 
 export async function POST(req: NextRequest) {
-  const { projectId, filePath, forceMerge } = await req.json()
+  let projectId: string, filePath: string, forceMerge: boolean
+  try {
+    const body = await req.json()
+    projectId = body.projectId
+    filePath = body.filePath
+    forceMerge = body.forceMerge
+  } catch (e) {
+    return NextResponse.json({ error: `Bad request body: ${e}` }, { status: 400 })
+  }
 
   if (!projectId || !filePath) {
     return NextResponse.json({ error: 'Missing projectId or filePath' }, { status: 400 })
@@ -144,12 +152,18 @@ export async function POST(req: NextRequest) {
   }
 
   // 7. Send to Claude Haiku 5.5
-  const message = await anthropic.messages.create({
+  let message: Awaited<ReturnType<typeof anthropic.messages.create>>
+  try {
+    message = await anthropic.messages.create({
     model: 'claude-haiku-5-5',
     max_tokens: 4096,
     system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: deltaText }],
-  })
+      messages: [{ role: 'user', content: deltaText }],
+    })
+  } catch (e) {
+    await supabase.storage.from('chat-exports').remove([filePath])
+    return NextResponse.json({ error: `AI call failed: ${e instanceof Error ? e.message : e}` }, { status: 500 })
+  }
 
   const content = message.content.find(b => b.type === 'text')
   if (!content || content.type !== 'text') {
