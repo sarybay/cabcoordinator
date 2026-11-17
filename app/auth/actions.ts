@@ -56,9 +56,12 @@ export async function sendMagicLinkAction(
   const supabase = createServerClient()
 
   // 1. Already a registered user → send magic link via Resend
+  // If the email is the admin's own, send directly; otherwise route through admin for forwarding
   const exists = await userExistsByEmail(email)
   if (exists) {
-    const result = await sendMagicLinkViaResend(email, siteUrl)
+    const adminEmail = process.env.SUPER_ADMIN_EMAIL!
+    const sendTo = email.toLowerCase() === adminEmail.toLowerCase() ? undefined : adminEmail
+    const result = await sendMagicLinkViaResend(email, siteUrl, sendTo)
     if (result.error) return { error: result.error }
     return {}
   }
