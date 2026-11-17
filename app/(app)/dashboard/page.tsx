@@ -53,6 +53,11 @@ export default async function DashboardPage() {
     cabsByProject.get(pid)!.cabs.push(cab)
   }
 
+  function daysUntilDeletion(lastUpdatedAt: string): number {
+    const deleteAt = new Date(new Date(lastUpdatedAt).getTime() + 14 * 24 * 60 * 60 * 1000)
+    return Math.ceil((deleteAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+  }
+
   // Sort projects by earliest upcoming arrival date (future/today first, past dates sink to bottom)
   const today = new Date().toISOString().slice(0, 10)
   const sortedCabsByProject = Array.from(cabsByProject.entries()).sort(([, a], [, b]) => {
@@ -178,6 +183,13 @@ export default async function DashboardPage() {
                             Last msg {new Date(p.last_message_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
                         )}
+                        {(() => {
+                          const days = daysUntilDeletion(p.last_updated_at)
+                          if (days > 7) return <p className="text-xs text-gray-300 mt-0.5">Deletes in {days}d</p>
+                          if (days > 2) return <p className="text-xs text-amber-500 mt-0.5">Deletes in {days}d</p>
+                          if (days > 0) return <p className="text-xs text-red-500 font-medium mt-0.5">Deletes in {days}d</p>
+                          return <p className="text-xs text-red-500 font-medium mt-0.5">Deletion overdue</p>
+                        })()}
                       </div>
                       {active > 0 && (
                         <div className="relative flex-shrink-0" title={`${done} of ${active} done`}>
