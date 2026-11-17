@@ -91,6 +91,10 @@ export default function LoginPage() {
             {isPending ? 'Sending…' : 'Send magic link →'}
           </button>
         </form>
+
+        <p className="mt-6 text-xs text-gray-400 text-center">
+          New here? Enter your email to request access.
+        </p>
       </div>
     </main>
   )
