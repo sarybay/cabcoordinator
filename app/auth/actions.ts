@@ -5,18 +5,10 @@ import { createServerClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 
 async function userExistsByEmail(email: string): Promise<boolean> {
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(email)}&page=1&per_page=1`,
-    {
-      headers: {
-        apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
-      },
-    }
-  )
-  if (!response.ok) return false
-  const { users } = (await response.json()) as { users?: Array<{ id: string }> }
-  return (users?.length ?? 0) > 0
+  const supabase = createServerClient()
+  const { data, error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
+  if (error || !data) return false
+  return data.users.some(u => u.email?.toLowerCase() === email.toLowerCase())
 }
 
 export async function sendMagicLinkAction(
