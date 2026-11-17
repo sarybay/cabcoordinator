@@ -152,13 +152,29 @@ export async function POST(req: NextRequest) {
   }
 
   // 7. Send to Claude Haiku 5.5
+  // Sanitize: replace non-Latin-1 chars (codepoint > 255) with ASCII equivalents.
+  // The Anthropic SDK internally calls btoa() which rejects codepoints > 255,
+  // and WhatsApp exports commonly contain characters like • (U+2022 = 8226).
+  const safeText = deltaText.replace(/[^\x00-\xFF]/g, (ch) => {
+    const map: Record<string, string> = {
+      '•': '*',    // bullet •
+      '‘': "'", '’': "'",   // smart single quotes
+      '“': '"', '”': '"',   // smart double quotes
+      '–': '-',  '—': '--', // en/em dash
+      '…': '...', // ellipsis
+      '‎': '', '‏': '',     // LTR/RTL marks
+      '‪': '', '‫': '', '‬': '', '‭': '', '‮': '', // directional embeddings
+    }
+    return map[ch] ?? ' '
+  })
+
   let message: Awaited<ReturnType<typeof anthropic.messages.create>>
   try {
     message = await anthropic.messages.create({
-    model: 'claude-haiku-5-5',
-    max_tokens: 4096,
-    system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: deltaText }],
+      model: 'claude-haiku-5-5',
+      max_tokens: 4096,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: safeText }],
     })
   } catch (e) {
     await supabase.storage.from('chat-exports').remove([filePath])
