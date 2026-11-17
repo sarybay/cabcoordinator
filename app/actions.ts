@@ -54,7 +54,6 @@ export async function setCabStatus(cabId: string, status: 'pending' | 'in_progre
   // Mark all non-deleted passengers in this cab as edited (status change is a manual action)
   await supabase.from('passengers').update({ is_edited: true }).eq('cab_id', cabId).eq('is_deleted', false)
   revalidatePath('/project/[id]', 'page')
-  revalidatePath('/driver/[cabId]', 'page')
   revalidatePath('/dashboard')
   return { doneBy }
 }
@@ -66,7 +65,6 @@ export async function markCabDone(cabId: string) {
     .update({ is_done: true })
     .eq('id', cabId)
   if (error) throw new Error(error.message)
-  revalidatePath('/driver/[cabId]', 'page')
   revalidatePath('/project/[id]', 'page')
   revalidatePath('/dashboard')
 }
@@ -78,7 +76,6 @@ export async function markCabStarted(cabId: string) {
     .update({ started_at: new Date().toISOString() })
     .eq('id', cabId)
   if (error) throw new Error(error.message)
-  revalidatePath('/driver/[cabId]', 'page')
   revalidatePath('/project/[id]', 'page')
   revalidatePath('/dashboard')
 }
