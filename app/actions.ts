@@ -304,7 +304,7 @@ export async function updateCoordinatorPhone(phone: string): Promise<{ error?: s
   return {}
 }
 
-export async function createDriverInviteAction(email: string): Promise<{ success: true } | { error: string }> {
+export async function createDriverInviteAction(email: string): Promise<{ inviteLink: string } | { error: string }> {
   if (!email.trim()) return { error: 'Email is required' }
 
   const authClient = await createAuthClient()
@@ -321,26 +321,42 @@ export async function createDriverInviteAction(email: string): Promise<{ success
 
   if (!membership) return { error: 'No organisation found' }
 
-  const { data, error } = await supabase
+  const { data: existing } = await supabase
     .from('drivers')
-    .insert({ org_id: membership.org_id, name: 'Invited driver', email: email.trim() })
     .select('invite_token')
-    .single()
+    .eq('org_id', membership.org_id)
+    .eq('email', email.trim())
+    .is('registered_at', null)
+    .maybeSingle()
 
-  if (error || !data) return { error: error?.message ?? 'Failed to create invite' }
+  let inviteToken: string
+
+  if (existing) {
+    inviteToken = existing.invite_token as string
+  } else {
+    const { data, error } = await supabase
+      .from('drivers')
+      .insert({ org_id: membership.org_id, name: 'Invited driver', email: email.trim() })
+      .select('invite_token')
+      .single()
+    if (error || !data) return { error: error?.message ?? 'Failed to create invite' }
+    inviteToken = data.invite_token as string
+  }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-  const { error: emailError } = await authClient.auth.signInWithOtp({
+
+  // Use admin.generateLink (service role, implicit flow — no PKCE cookie needed on the driver's browser)
+  const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+    type: 'magiclink',
     email: email.trim(),
-    options: {
-      emailRedirectTo: `${siteUrl}/auth/confirm?next=/invite/${data.invite_token}`,
-      shouldCreateUser: true,
-    },
+    options: { redirectTo: `${siteUrl}/auth/confirm?next=/invite/${inviteToken}` },
   })
 
-  if (emailError) return { error: emailError.message }
+  if (linkError || !linkData?.properties?.action_link) {
+    return { error: linkError?.message ?? 'Failed to generate invite link' }
+  }
 
-  return { success: true }
+  return { inviteLink: linkData.properties.action_link }
 }
 
 export async function deletePassenger(id: string): Promise<void> {
