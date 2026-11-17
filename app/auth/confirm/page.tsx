@@ -14,12 +14,14 @@ export default function ConfirmPage() {
     )
 
     async function handleConfirm() {
-      // Handle PKCE code flow (?code=...)
       const params = new URLSearchParams(window.location.search)
       const code = params.get('code')
+      const next = params.get('next') ?? '/dashboard'
+
+      // Handle PKCE code flow (?code=...)
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
-        if (!error) { router.replace('/dashboard'); return }
+        if (!error) { router.replace(next); return }
       }
 
       // Handle implicit/hash flow (#access_token=...)
@@ -30,13 +32,13 @@ export default function ConfirmPage() {
         const refreshToken = hashParams.get('refresh_token')
         if (accessToken && refreshToken) {
           const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-          if (!error) { router.replace('/dashboard'); return }
+          if (!error) { router.replace(next); return }
         }
       }
 
       // Fall back: check if session already exists
       const { data: { session } } = await supabase.auth.getSession()
-      if (session) { router.replace('/dashboard'); return }
+      if (session) { router.replace(next); return }
 
       router.replace('/auth/login')
     }

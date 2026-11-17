@@ -333,7 +333,7 @@ export async function createDriverInviteAction(email: string): Promise<{ success
   const { error: emailError } = await authClient.auth.signInWithOtp({
     email: email.trim(),
     options: {
-      emailRedirectTo: `${siteUrl}/auth/callback?next=/invite/${data.invite_token}`,
+      emailRedirectTo: `${siteUrl}/auth/confirm?next=/invite/${data.invite_token}`,
       shouldCreateUser: true,
     },
   })
