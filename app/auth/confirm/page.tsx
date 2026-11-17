@@ -12,13 +12,36 @@ export default function ConfirmPage() {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        router.replace('/dashboard')
-      } else {
-        router.replace('/auth/login')
+
+    async function handleConfirm() {
+      // Handle PKCE code flow (?code=...)
+      const params = new URLSearchParams(window.location.search)
+      const code = params.get('code')
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (!error) { router.replace('/dashboard'); return }
       }
-    })
+
+      // Handle implicit/hash flow (#access_token=...)
+      const hash = window.location.hash
+      if (hash.includes('access_token')) {
+        const hashParams = new URLSearchParams(hash.slice(1))
+        const accessToken = hashParams.get('access_token')
+        const refreshToken = hashParams.get('refresh_token')
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+          if (!error) { router.replace('/dashboard'); return }
+        }
+      }
+
+      // Fall back: check if session already exists
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) { router.replace('/dashboard'); return }
+
+      router.replace('/auth/login')
+    }
+
+    handleConfirm()
   }, [router])
 
   return (
