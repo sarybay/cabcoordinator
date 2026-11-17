@@ -57,7 +57,8 @@ export async function GET(req: NextRequest) {
 
   const magicLink = linkData.properties.action_link
 
-  // Send via Resend instead of relying on Supabase's email sender
+  // Send the magic link to the admin who can forward it to the new user
+  const adminEmail = process.env.SUPER_ADMIN_EMAIL!
   const resendRes = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -66,11 +67,12 @@ export async function GET(req: NextRequest) {
     },
     body: JSON.stringify({
       from: process.env.RESEND_FROM,
-      to: row.email,
-      subject: 'Your magic link to Cab Coordinator',
-      html: `<p>You've been approved! Click the link below to sign in:</p>
-             <p><a href="${magicLink}">Sign in to Cab Coordinator →</a></p>
-             <p style="color:#999;font-size:12px">This link expires in 1 hour.</p>`,
+      to: adminEmail,
+      subject: `Magic link for ${row.email}`,
+      html: `<p><strong>${row.email}</strong> has been approved.</p>
+             <p>Forward the link below to them (or copy and send via WhatsApp/email):</p>
+             <p><a href="${magicLink}">${magicLink}</a></p>
+             <p style="color:#999;font-size:12px">This link expires in 1 hour and can only be used once.</p>`,
     }),
   })
 
@@ -88,8 +90,8 @@ export async function GET(req: NextRequest) {
   return new NextResponse(
     `<!doctype html><html><head><meta charset="utf-8"></head><body style="font-family:sans-serif;padding:2rem;max-width:480px;margin:0 auto">
       <h2 style="color:#111">✅ Access approved</h2>
-      <p>A magic link has been sent to <strong>${row.email}</strong>.</p>
-      <p style="color:#666;font-size:14px">They can now click that link to sign in and their account will be set up automatically.</p>
+      <p>The magic link for <strong>${row.email}</strong> has been sent to your email (${adminEmail}).</p>
+      <p style="color:#666;font-size:14px">Forward it to them via WhatsApp or email. It expires in 1 hour.</p>
     </body></html>`,
     { headers: { 'Content-Type': 'text/html' } }
   )
