@@ -539,6 +539,7 @@ export default function PassengerTable({ passengers, drivers, carTypes, cabs }: 
         <thead className="sticky top-0 z-10 bg-gray-50">
           <tr className="bg-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wider">
             <th className="pl-5 pr-2 py-3 text-left w-8">#</th>
+            <th className="px-4 py-3 text-center w-10">Details</th>
             <th className="px-4 py-3 text-left">Name</th>
             <th className="px-4 py-3 text-left">Phone</th>
             <th className="px-4 py-3 text-left">Flight</th>
@@ -553,7 +554,6 @@ export default function PassengerTable({ passengers, drivers, carTypes, cabs }: 
             <th className="px-4 py-3 text-left">Car type</th>
             <th className="px-4 py-3 text-left w-20">Price</th>
             <th className="px-4 py-3 text-left">Status</th>
-            <th className="px-4 py-3 text-center w-10">Details</th>
             <th className="px-4 py-3 text-center w-10"></th>
           </tr>
         </thead>
@@ -580,6 +580,18 @@ export default function PassengerTable({ passengers, drivers, carTypes, cabs }: 
             return (
               <tr key={p.id} className={`transition-opacity ${bgClass} ${borderB} ${borderT} ${isDone ? 'opacity-40' : ''} ${p.isDeleted ? 'opacity-50' : ''}`}>
                 <td className="pl-5 pr-2 py-3.5 text-xs text-gray-400 w-8">{idx + 1}</td>
+                {/* Details */}
+                <td className="px-4 py-3.5 text-center">
+                  <span className="flex items-center justify-center gap-0.5">
+                    <DetailsCell
+                      passengerId={p.id}
+                      initialDetails={p.additionalDetails}
+                      initialUpdatedBy={p.additionalDetailsUpdatedBy}
+                      onSaved={() => markPassengerEdited(p.id, 'details')}
+                    />
+                    {editedFieldsMap[p.id]?.has('details') && !p.isDeleted && <span className="text-pink-400 text-[5px] font-sans flex-shrink-0">★</span>}
+                  </span>
+                </td>
                 <td className="px-4 py-3.5 font-medium">
                   <span className="flex items-center gap-0.5">
                     <EditableCell passengerId={p.id} field="name" initialValue={p.name} type="text"
@@ -721,18 +733,6 @@ export default function PassengerTable({ passengers, drivers, carTypes, cabs }: 
                     </span>
                   </td>
                 )}
-                {/* Details */}
-                <td className="px-4 py-3.5 text-center">
-                  <span className="flex items-center justify-center gap-0.5">
-                    <DetailsCell
-                      passengerId={p.id}
-                      initialDetails={p.additionalDetails}
-                      initialUpdatedBy={p.additionalDetailsUpdatedBy}
-                      onSaved={() => markPassengerEdited(p.id, 'details')}
-                    />
-                    {editedFieldsMap[p.id]?.has('details') && !p.isDeleted && <span className="text-pink-400 text-[5px] font-sans flex-shrink-0">★</span>}
-                  </span>
-                </td>
                 {/* Options */}
                 <td className="px-2 py-3.5 text-center">
                   <OptionsMenu passenger={p} cabs={cabs} />
