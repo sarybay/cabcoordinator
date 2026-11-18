@@ -43,7 +43,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="px-8 py-6 border-t border-gray-100 flex items-center justify-between text-sm text-gray-400">
-        <span>Contact: <a href="mailto:hello@cabcoordinator.app" className="hover:text-gray-700 transition-colors">hello@cabcoordinator.app</a></span>
+        <span>Contact: <a href="mailto:beats887@hotmail.com" className="hover:text-gray-700 transition-colors">beats887@hotmail.com</a></span>
         <span>© {new Date().getFullYear()} Cab Coordinator</span>
       </footer>
     </div>
