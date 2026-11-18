@@ -534,7 +534,7 @@ export default function PassengerTable({ passengers, drivers, carTypes, cabs }: 
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 overflow-clip">
+    <div className="bg-white rounded-xl border border-gray-100 overflow-x-auto">
       <table className="w-full text-sm border-separate border-spacing-0">
         <thead className="sticky top-0 z-10 bg-gray-50">
           <tr className="bg-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wider">
