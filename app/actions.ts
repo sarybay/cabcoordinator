@@ -425,6 +425,14 @@ export async function updatePassengerField(
   return {}
 }
 
+export async function deleteProject(projectId: string): Promise<void> {
+  const supabase = createServerClient()
+  await supabase.from('cabs').delete().eq('project_id', projectId)
+  await supabase.from('passengers').delete().eq('project_id', projectId)
+  await supabase.from('projects').delete().eq('id', projectId)
+  redirect('/dashboard')
+}
+
 export async function addCab(projectId: string, label: string): Promise<{ id: string } | { error: string }> {
   const supabase = createServerClient()
   const { data, error } = await supabase

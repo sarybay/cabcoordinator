@@ -1,6 +1,7 @@
 import PassengerTable from '@/components/PassengerTable'
 import CabCard from '@/components/CabCard'
 import LogoutButton from '@/components/LogoutButton'
+import DeleteProjectButton from '@/components/DeleteProjectButton'
 import AddPassengerModal from '@/components/AddPassengerModal'
 import AddCabForm from '@/components/AddCabForm'
 import ImportedBanner from '@/components/ImportedBanner'
@@ -198,7 +199,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             </p>
           </div>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-3">
+          <DeleteProjectButton projectId={id} />
+          <LogoutButton />
+        </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
