@@ -148,24 +148,4 @@ export async function bundlePassengersIntoCabs(
   for (const { cabId, passengerIds } of cabAssignments) {
     await supabase.from('passengers').update({ cab_id: cabId }).in('id', passengerIds)
   }
-
-  // Auto-assign drivers round-robin (if we have an org)
-  if (orgId && cabAssignments.length > 0) {
-    const { data: drivers } = await supabase
-      .from('drivers')
-      .select('id')
-      .eq('org_id', orgId)
-      .not('registered_at', 'is', null)
-      .order('created_at')
-
-    if (drivers && drivers.length > 0) {
-      for (let i = 0; i < cabAssignments.length; i++) {
-        const driverId = drivers[i % drivers.length].id
-        await supabase
-          .from('cabs')
-          .update({ driver_id: driverId })
-          .eq('id', cabAssignments[i].cabId)
-      }
-    }
-  }
 }
